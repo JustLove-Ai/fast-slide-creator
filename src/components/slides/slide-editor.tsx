@@ -168,9 +168,9 @@ export function SlideEditor({ slide, isOpen, onClose, onSave }: SlideEditorProps
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-lg z-50 overflow-y-auto">
-      <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="text-lg font-semibold">Edit Slide</h2>
+    <div className="fixed inset-y-0 right-0 w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 shadow-lg z-50 overflow-y-auto">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Slide</h2>
         <Button variant="outline" size="sm" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
@@ -307,7 +307,7 @@ export function SlideEditor({ slide, isOpen, onClose, onSave }: SlideEditorProps
 
 
         {/* Actions */}
-        <div className="flex gap-2 pt-4 border-t">
+        <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>

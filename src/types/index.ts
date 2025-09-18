@@ -97,3 +97,39 @@ export interface AIGenerationResult {
   }
   slides: AIGeneratedSlide[]
 }
+
+// Theme system types
+export type ThemeName = 'default' | 'dark' | 'professional' | 'colorful' | 'minimal' | 'creative' | 'custom'
+
+export interface ThemeColors {
+  background: string
+  surface: string
+  primary: string
+  secondary: string
+  accent: string
+  text: string
+  textSecondary: string
+  border: string
+}
+
+export interface SlideTheme {
+  name: ThemeName
+  label: string
+  colors: ThemeColors
+  fontFamily?: string
+  borderRadius?: string
+  shadows?: boolean
+}
+
+export interface CustomThemeOptions {
+  backgroundColor?: string
+  textColor?: string
+  titleColor?: string
+  accentColor?: string
+}
+
+// Extended slide type with theme data
+export interface SlideWithTheme extends Slide {
+  theme?: SlideTheme
+  customTheme?: CustomThemeOptions
+}

@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Slide, SlideTemplate } from '@/types'
+import { Slide, SlideTemplate, SlideTheme, CustomThemeOptions } from '@/types'
 import { SlideEditor } from './slide-editor'
+import { SlideDesigner } from './slide-designer'
 import { TldrawCanvas } from './tldraw-canvas'
 import { updateSlide } from '@/lib/actions/slide'
+import { defaultThemes, getThemeStyles, getThemeTextStyles } from '@/lib/themes'
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,7 +25,8 @@ import {
   Circle,
   Type,
   Eraser,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Palette
 } from 'lucide-react'
 
 interface SlideViewerProps {
@@ -37,6 +40,7 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [isDesignerOpen, setIsDesignerOpen] = useState(false)
   const [slidesState, setSlidesState] = useState(slides)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 450 })
   const [forceRender, setForceRender] = useState(0)
@@ -108,6 +112,12 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
   const handleEditSlide = (slide: Slide) => {
     setIsEditorOpen(true)
+    setIsDesignerOpen(false)
+  }
+
+  const handleDesignSlide = (slide: Slide) => {
+    setIsDesignerOpen(true)
+    setIsEditorOpen(false)
   }
 
   const handleSlideUpdate = (updatedSlide: Slide) => {
@@ -128,6 +138,38 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
     if (previousSlide && JSON.stringify(previousSlide.canvasData) !== JSON.stringify(updatedSlide.canvasData)) {
       debouncedSaveCanvas(updatedSlide)
     }
+  }
+
+  const handleThemeUpdate = (updatedSlide: Slide & { theme?: SlideTheme; customTheme?: CustomThemeOptions }) => {
+    handleSlideUpdate(updatedSlide)
+  }
+
+  const handleApplyThemeToAll = async (theme: SlideTheme, customTheme?: CustomThemeOptions) => {
+    const updatedSlides = slidesState.map(slide => ({
+      ...slide,
+      theme,
+      customTheme
+    }))
+
+    setSlidesState(updatedSlides)
+
+    // Update all slides in database
+    try {
+      await Promise.all(
+        updatedSlides.map(slide =>
+          updateSlide(slide.id, {
+            // Store theme data in a way that works with your schema
+            // You might need to add theme fields to the database schema
+          })
+        )
+      )
+    } catch (error) {
+      // Failed to save theme to all slides
+    }
+  }
+
+  const getSlideTheme = (slide: Slide): SlideTheme => {
+    return (slide as any).theme || defaultThemes[0]
   }
 
   const getSlideTemplateLayout = (template: SlideTemplate) => {
@@ -158,14 +200,29 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
   const renderSlideContent = (slide: Slide) => {
     const layout = getSlideTemplateLayout(slide.template)
     const contentLines = slide.content?.split('\n').filter(line => line.trim()) || []
+    const theme = getSlideTheme(slide)
+    const themeStyles = getThemeStyles(theme)
 
     switch (layout) {
       case 'cover':
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center bg-gradient-to-br from-blue-600 to-purple-700 text-white p-16">
-            <h1 className="text-6xl font-bold mb-8">{slide.title}</h1>
+          <div
+            className="flex flex-col items-center justify-center h-full text-center p-16"
+            style={themeStyles}
+          >
+            <h1
+              className="text-6xl font-bold mb-8"
+              style={{ color: theme.colors.primary, fontFamily: theme.fontFamily }}
+            >
+              {slide.title}
+            </h1>
             {slide.content && (
-              <p className="text-2xl opacity-90">{slide.content}</p>
+              <p
+                className="text-2xl opacity-90"
+                style={{ color: theme.colors.text, fontFamily: theme.fontFamily }}
+              >
+                {slide.content}
+              </p>
             )}
           </div>
         )
@@ -174,12 +231,24 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
       case 'text-right-image-left':
         const isTextLeft = layout === 'text-left-image-right'
         return (
-          <div className={`flex h-full ${isTextLeft ? 'flex-row' : 'flex-row-reverse'}`}>
+          <div
+            className={`flex h-full ${isTextLeft ? 'flex-row' : 'flex-row-reverse'}`}
+            style={themeStyles}
+          >
             <div className="flex-1 p-12 flex flex-col justify-center">
-              <h2 className="text-4xl font-bold mb-8 text-gray-900">{slide.title}</h2>
+              <h2
+                className="text-4xl font-bold mb-8"
+                style={{ color: theme.colors.primary, fontFamily: theme.fontFamily }}
+              >
+                {slide.title}
+              </h2>
               <div className="space-y-4">
                 {contentLines.map((line, index) => (
-                  <p key={index} className="text-lg text-gray-700 leading-relaxed">
+                  <p
+                    key={index}
+                    className="text-lg leading-relaxed"
+                    style={{ color: theme.colors.text, fontFamily: theme.fontFamily }}
+                  >
                     {line}
                   </p>
                 ))}
@@ -340,11 +409,11 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4">
+      <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{presentationTitle}</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{presentationTitle}</h1>
+            <p className="text-gray-600 dark:text-gray-300">
               Slide {currentSlideIndex + 1} of {slidesState.length}
             </p>
           </div>
@@ -354,15 +423,19 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
+            <Button variant="outline" size="sm" onClick={() => handleDesignSlide(currentSlide)}>
+              <Palette className="h-4 w-4 mr-2" />
+              Design
+            </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex ${isEditorOpen ? 'mr-96' : ''} transition-all duration-300`}>
+      <div className={`flex-1 flex ${isEditorOpen || isDesignerOpen ? 'mr-96' : ''} transition-all duration-300`}>
         <div className="flex-1 flex flex-col">
           {/* Main Slide Display */}
-          <div className="flex-1 bg-gray-100 p-4">
+          <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-4">
             <div
               key={currentSlide?.template?.includes('CANVAS') ? `slide-${currentSlide?.id}` : `slide-${currentSlide?.id}-${forceRender}`}
               className="h-full bg-white shadow-lg rounded-lg overflow-hidden"
@@ -372,7 +445,7 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
           </div>
 
           {/* Bottom Navigation */}
-          <div className="flex-shrink-0 bg-white border-t border-gray-200 px-6 py-4">
+          <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Button
@@ -453,6 +526,15 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
         isOpen={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
         onSave={handleSlideUpdate}
+      />
+
+      {/* Slide Designer */}
+      <SlideDesigner
+        slide={currentSlide}
+        isOpen={isDesignerOpen}
+        onClose={() => setIsDesignerOpen(false)}
+        onSave={handleThemeUpdate}
+        onApplyToAll={handleApplyThemeToAll}
       />
     </div>
   )

@@ -10,8 +10,8 @@ export default async function BrainstormsPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Brainstorms</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Brainstorms</h1>
+        <p className="text-gray-600 dark:text-gray-300">
           Capture and manage your raw ideas and concepts. Transform them into compelling presentations.
         </p>
       </div>

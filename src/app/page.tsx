@@ -5,7 +5,7 @@ import { Lightbulb, Target, Presentation, Palette } from "lucide-react"
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-12">
         {/* Quick Start Section */}
         <section className="mb-20">
@@ -14,10 +14,10 @@ export default function Home() {
 
         {/* Why Choose FastSlides */}
         <section className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
             Why Choose FastSlides?
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-12">
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-12">
             No more starting from blank slides. Just share your ideas and let AI do the heavy lifting.
           </p>
 
@@ -75,10 +75,10 @@ export default function Home() {
         {/* Content Frameworks - Optional Learning */}
         <section className="mb-16">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               Content Frameworks (Optional)
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Choose a framework to structure your content, or let AI pick the best one for you
             </p>
           </div>
