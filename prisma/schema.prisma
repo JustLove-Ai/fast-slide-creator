@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// User management
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  brainstorms      Brainstorm[]
+  contextProfiles  ContextProfile[]
+  presentations    Presentation[]
+}
+
+// Store user's raw concepts and ideas (reusable)
+model Brainstorm {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  content     String   // Raw brainstorm content
+  tags        String[] // For categorization
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  presentations Presentation[]
+}
+
+// Business context and audience details
+model ContextProfile {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  businessType     String?
+  targetAudience   String
+  objectives       String
+  preferences      String   // Things they like/don't like
+  brandTone        String?
+  industryContext  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  presentations Presentation[]
+}
+
+// Generated presentations
+model Presentation {
+  id               String      @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  contentAngle     ContentAngle // CUB, PASE, or HEAR
+  aiGeneratedData  Json?        // Store AI generation metadata
+  narration        String?      // Generated narration text
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  userId           String         @db.ObjectId
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brainstormId     String         @db.ObjectId
+  brainstorm       Brainstorm     @relation(fields: [brainstormId], references: [id])
+  contextProfileId String         @db.ObjectId
+  contextProfile   ContextProfile @relation(fields: [contextProfileId], references: [id])
+
+  slides Slide[]
+}
+
+// Individual slides with templates
+model Slide {
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  order            Int           // Slide position in presentation
+  template         SlideTemplate
+  title            String?
+  content          String?       // Text content
+  imageUrl         String?       // Image for traditional slides
+  canvasData       Json?         // Fabric.js canvas JSON for canvas slides
+  transition       String?       // Transition type
+  narrationSegment String?       // Narration for this slide
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  presentationId String       @db.ObjectId
+  presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+}
+
+// Enums for content angles and slide templates
+enum ContentAngle {
+  CUB   // Contrarian-Useful-Bridge
+  PASE  // Problem-Agitate-Solve-Expand
+  HEAR  // Hook-Empathy-Authority-Roadmap
+}
+
+enum SlideTemplate {
+  COVER              // Title slide
+  TEXT_LEFT_IMAGE_RIGHT
+  TEXT_RIGHT_IMAGE_LEFT
+  TEXT_LEFT_CANVAS_RIGHT
+  TEXT_RIGHT_CANVAS_LEFT
+  FULL_TEXT
+  FULL_IMAGE
+  FULL_CANVAS
+  TRANSITION         // Smooth transition slides
+}
