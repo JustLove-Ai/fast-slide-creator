@@ -19,7 +19,6 @@ export async function createBrainstorm(
     revalidatePath('/brainstorms')
     return brainstorm
   } catch (error) {
-    console.error('Error creating brainstorm:', error)
     throw new Error('Failed to create brainstorm')
   }
 }
@@ -38,7 +37,6 @@ export async function updateBrainstorm(
     revalidatePath(`/brainstorms/${id}`)
     return brainstorm
   } catch (error) {
-    console.error('Error updating brainstorm:', error)
     throw new Error('Failed to update brainstorm')
   }
 }
@@ -51,7 +49,6 @@ export async function deleteBrainstorm(id: string): Promise<void> {
 
     revalidatePath('/brainstorms')
   } catch (error) {
-    console.error('Error deleting brainstorm:', error)
     throw new Error('Failed to delete brainstorm')
   }
 }
@@ -65,7 +62,6 @@ export async function getBrainstormsByUser(userId: string): Promise<Brainstorm[]
 
     return brainstorms
   } catch (error) {
-    console.error('Error fetching brainstorms:', error)
     throw new Error('Failed to fetch brainstorms')
   }
 }
@@ -85,7 +81,6 @@ export async function getBrainstormById(id: string): Promise<Brainstorm | null> 
 
     return brainstorm
   } catch (error) {
-    console.error('Error fetching brainstorm:', error)
     throw new Error('Failed to fetch brainstorm')
   }
 }
@@ -110,7 +105,6 @@ export async function searchBrainstorms(
 
     return brainstorms
   } catch (error) {
-    console.error('Error searching brainstorms:', error)
     throw new Error('Failed to search brainstorms')
   }
 }

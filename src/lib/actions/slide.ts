@@ -19,7 +19,6 @@ export async function createSlide(
     revalidatePath(`/presentations/${presentationId}`)
     return slide
   } catch (error) {
-    console.error('Error creating slide:', error)
     throw new Error('Failed to create slide')
   }
 }
@@ -45,7 +44,6 @@ export async function updateSlide(
 
     return slide
   } catch (error) {
-    console.error('Error updating slide:', error)
     throw new Error('Failed to update slide')
   }
 }
@@ -65,7 +63,6 @@ export async function deleteSlide(id: string): Promise<void> {
       revalidatePath(`/presentations/${slide.presentationId}`)
     }
   } catch (error) {
-    console.error('Error deleting slide:', error)
     throw new Error('Failed to delete slide')
   }
 }
@@ -79,7 +76,6 @@ export async function getSlidesByPresentation(presentationId: string): Promise<S
 
     return slides
   } catch (error) {
-    console.error('Error fetching slides:', error)
     throw new Error('Failed to fetch slides')
   }
 }
@@ -101,7 +97,6 @@ export async function reorderSlides(
 
     revalidatePath(`/presentations/${presentationId}`)
   } catch (error) {
-    console.error('Error reordering slides:', error)
     throw new Error('Failed to reorder slides')
   }
 }

@@ -20,7 +20,6 @@ export async function createContextProfile(
     revalidatePath('/context-profiles')
     return contextProfile
   } catch (error) {
-    console.error('Error creating context profile:', error)
     throw new Error('Failed to create context profile')
   }
 }
@@ -39,7 +38,6 @@ export async function updateContextProfile(
     revalidatePath(`/context-profiles/${id}`)
     return contextProfile
   } catch (error) {
-    console.error('Error updating context profile:', error)
     throw new Error('Failed to update context profile')
   }
 }
@@ -52,7 +50,6 @@ export async function deleteContextProfile(id: string): Promise<void> {
 
     revalidatePath('/context-profiles')
   } catch (error) {
-    console.error('Error deleting context profile:', error)
     throw new Error('Failed to delete context profile')
   }
 }
@@ -66,7 +63,6 @@ export async function getContextProfilesByUser(userId: string): Promise<ContextP
 
     return contextProfiles
   } catch (error) {
-    console.error('Error fetching context profiles:', error)
     throw new Error('Failed to fetch context profiles')
   }
 }
@@ -86,7 +82,6 @@ export async function getContextProfileById(id: string): Promise<ContextProfile 
 
     return contextProfile
   } catch (error) {
-    console.error('Error fetching context profile:', error)
     throw new Error('Failed to fetch context profile')
   }
 }
@@ -112,7 +107,6 @@ export async function searchContextProfiles(
 
     return contextProfiles
   } catch (error) {
-    console.error('Error searching context profiles:', error)
     throw new Error('Failed to search context profiles')
   }
 }
@@ -142,7 +136,6 @@ export async function createDefaultContextProfile(data: {
 
     return contextProfile
   } catch (error) {
-    console.error('Error creating default context profile:', error)
     throw new Error('Failed to create default context profile')
   }
 }

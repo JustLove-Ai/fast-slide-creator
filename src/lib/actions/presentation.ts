@@ -17,8 +17,6 @@ export async function createPresentation(
   }
 ): Promise<Presentation> {
   try {
-    console.log('Creating presentation with data:', { userId, ...data })
-
     // Validate that the brainstorm and context profile exist and belong to the user
     const brainstorm = await prisma.brainstorm.findFirst({
       where: { id: data.brainstormId, userId }
@@ -43,11 +41,9 @@ export async function createPresentation(
       },
     })
 
-    console.log('Successfully created presentation:', presentation.id)
     revalidatePath('/presentations')
     return presentation
   } catch (error) {
-    console.error('Error creating presentation:', error)
     if (error instanceof Error) {
       throw new Error(`Failed to create presentation: ${error.message}`)
     }
@@ -69,7 +65,6 @@ export async function updatePresentation(
     revalidatePath(`/presentations/${id}`)
     return presentation
   } catch (error) {
-    console.error('Error updating presentation:', error)
     throw new Error('Failed to update presentation')
   }
 }
@@ -82,7 +77,6 @@ export async function deletePresentation(id: string): Promise<void> {
 
     revalidatePath('/presentations')
   } catch (error) {
-    console.error('Error deleting presentation:', error)
     throw new Error('Failed to delete presentation')
   }
 }
@@ -104,7 +98,6 @@ export async function getPresentationsByUser(userId: string): Promise<Presentati
 
     return presentations
   } catch (error) {
-    console.error('Error fetching presentations:', error)
     throw new Error('Failed to fetch presentations')
   }
 }
@@ -125,7 +118,6 @@ export async function getPresentationById(id: string): Promise<PresentationWithD
 
     return presentation
   } catch (error) {
-    console.error('Error fetching presentation:', error)
     throw new Error('Failed to fetch presentation')
   }
 }
@@ -157,7 +149,6 @@ export async function searchPresentations(
 
     return presentations
   } catch (error) {
-    console.error('Error searching presentations:', error)
     throw new Error('Failed to search presentations')
   }
 }

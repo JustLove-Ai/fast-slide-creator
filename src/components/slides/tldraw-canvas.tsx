@@ -54,7 +54,6 @@ export function TldrawCanvas({ width, height, data, onChange, showToolbar = true
           setTldrawLoaded(true)
         })
         .catch((error) => {
-          console.error('Failed to load tldraw:', error)
           setTldrawError(true)
         })
     }
@@ -70,7 +69,7 @@ export function TldrawCanvas({ width, height, data, onChange, showToolbar = true
         loadSnapshot(editor.store, data)
         editor.updateViewportScreenBounds()
       } catch (error) {
-        console.error('Error loading tldraw data:', error)
+        // Error loading tldraw data
       }
     }
 
@@ -81,7 +80,7 @@ export function TldrawCanvas({ width, height, data, onChange, showToolbar = true
           const snapshot = getSnapshot(editorRef.current.store)
           onChange(snapshot)
         } catch (error) {
-          console.error('Error capturing tldraw snapshot:', error)
+          // Error capturing tldraw snapshot
         }
       }
     }
@@ -111,7 +110,7 @@ export function TldrawCanvas({ width, height, data, onChange, showToolbar = true
           loadSnapshot(editorRef.current.store, data)
         }
       } catch (error) {
-        console.error('Error loading updated tldraw data:', error)
+        // Error loading updated tldraw data
       }
     }
   }, [data, isLoaded])

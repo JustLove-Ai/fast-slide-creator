@@ -63,7 +63,7 @@ export function SlideEditor({ slide, isOpen, onClose, onSave }: SlideEditorProps
       onSave?.(updatedSlide)
       onClose()
     } catch (error) {
-      console.error('Error saving slide:', error)
+      // Error saving slide
     } finally {
       setIsSaving(false)
     }

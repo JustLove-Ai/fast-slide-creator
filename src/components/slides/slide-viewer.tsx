@@ -55,7 +55,7 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
               canvasData: slide.canvasData
             })
           } catch (error) {
-            console.error('Failed to auto-save canvas:', error)
+            // Failed to auto-save canvas
           }
         }, 1000) // Save 1 second after last change
       }

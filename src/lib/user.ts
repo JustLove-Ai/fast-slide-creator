@@ -21,7 +21,6 @@ export async function getOrCreateDemoUser(): Promise<User> {
 
     return user
   } catch (error) {
-    console.error('Error getting/creating demo user:', error)
     throw new Error('Failed to initialize user')
   }
 }
