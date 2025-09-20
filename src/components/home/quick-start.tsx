@@ -10,39 +10,55 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles, Rocket, Target, Users } from 'lucide-react'
-import { ContentAngle } from '@/types'
-import { createBrainstorm } from '@/lib/actions/brainstorm'
-import { createDefaultContextProfile } from '@/lib/actions/context-profile'
-import { createPresentation } from '@/lib/actions/presentation'
+import { ContentAngle, HookAngle } from '@/types'
+import { getAllContentAngles } from '@/lib/content-angles'
+import { getAllHookAngles } from '@/lib/hook-angles'
+import { createAIPresentationWithSlides } from '@/lib/actions/ai-presentation'
 
 export function QuickStart() {
   const router = useRouter()
   const [brainstormContent, setBrainstormContent] = useState('')
   const [audienceInfo, setAudienceInfo] = useState('')
   const [contentAngle, setContentAngle] = useState<ContentAngle | ''>('')
+  const [hookAngle, setHookAngle] = useState<HookAngle | ''>('')
   const [isCreating, setIsCreating] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
-  const contentAngles = [
-    {
-      value: 'CUB' as ContentAngle,
-      label: 'CUB (Contrarian-Useful-Bridge)',
-      description: 'Challenge → Value → Connect',
-      color: 'bg-blue-500'
-    },
-    {
-      value: 'PASE' as ContentAngle,
-      label: 'PASE (Problem-Agitate-Solve-Expand)',
-      description: 'Identify → Intensify → Resolve → Scale',
-      color: 'bg-green-500'
-    },
-    {
-      value: 'HEAR' as ContentAngle,
-      label: 'HEAR (Hook-Empathy-Authority-Roadmap)',
-      description: 'Grab → Connect → Establish → Guide',
-      color: 'bg-purple-500'
+  const contentAngles = getAllContentAngles().map((angle) => {
+    const colorMap = {
+      'CUB': 'bg-blue-500',
+      'PASE': 'bg-green-500',
+      'HEAR': 'bg-purple-500',
+      'YOUTUBE': 'bg-red-500',
+      'WHATWHYHOW': 'bg-orange-500'
     }
-  ]
+
+    return {
+      value: angle.name,
+      label: angle.label,
+      description: angle.description,
+      color: colorMap[angle.name] || 'bg-gray-500'
+    }
+  })
+
+  const hookAngles = getAllHookAngles().map((angle) => {
+    const colorMap = {
+      'FORTUNE_TELLER': 'bg-indigo-500',
+      'EXPERIMENTER': 'bg-teal-500',
+      'TEACHER': 'bg-amber-500',
+      'MAGICIAN': 'bg-pink-500',
+      'INVESTIGATOR': 'bg-cyan-500',
+      'CONTRARIAN': 'bg-rose-500'
+    }
+
+    return {
+      value: angle.name,
+      label: angle.label,
+      description: angle.description,
+      example: angle.example,
+      color: colorMap[angle.name] || 'bg-gray-500'
+    }
+  })
 
   const handleCreatePresentation = async () => {
     if (!brainstormContent.trim()) {
@@ -52,31 +68,20 @@ export function QuickStart() {
 
     setIsCreating(true)
     try {
-      // Create brainstorm
-      const brainstorm = await createBrainstorm({
-        title: brainstormContent.split('\n')[0].slice(0, 100) + (brainstormContent.length > 100 ? '...' : ''),
-        content: brainstormContent,
-        tags: []
+      const result = await createAIPresentationWithSlides({
+        brainstormContent,
+        audienceInfo,
+        contentAngle: (contentAngle as ContentAngle) || 'PASE',
+        hookAngle: hookAngle as HookAngle || undefined
       })
 
-      // Create context profile (or use default)
-      const contextProfile = await createDefaultContextProfile({
-        name: 'Quick Start Context',
-        audience: audienceInfo || 'General audience',
-        objectives: ['Create engaging presentation'],
-        preferences: { tone: 'professional', style: 'modern' }
-      })
-
-      // Create presentation
-      const presentation = await createPresentation({
-        title: brainstorm.title,
-        brainstormId: brainstorm.id,
-        contextProfileId: contextProfile.id,
-        contentAngle: (contentAngle as ContentAngle) || 'PASE'
-      })
-
-      // Redirect to the new presentation
-      router.push(`/presentations/${presentation.id}`)
+      if (result.success) {
+        // Redirect to the new presentation
+        router.push(`/presentations/${result.presentationId}`)
+      } else {
+        console.error('Error creating presentation:', result.error)
+        alert(`Error creating presentation: ${result.error}`)
+      }
     } catch (error) {
       console.error('Error creating presentation:', error)
       alert('Error creating presentation. Please try again.')
@@ -123,7 +128,7 @@ Examples:
           </div>
 
           {/* Quick Options */}
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {/* Audience */}
             <div className="space-y-3">
               <Label htmlFor="audience" className="text-base font-medium flex items-center gap-2">
@@ -155,6 +160,32 @@ Examples:
                         <div>
                           <div className="font-medium">{angle.label}</div>
                           <div className="text-xs text-gray-500">{angle.description}</div>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Hook Angle */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">
+                Choose a hook style <span className="text-gray-400 font-normal">(optional)</span>
+              </Label>
+              <Select value={hookAngle} onValueChange={(value) => setHookAngle(value as HookAngle)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Let AI pick the best hook" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hookAngles.map((angle) => (
+                    <SelectItem key={angle.value} value={angle.value}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${angle.color}`} />
+                        <div>
+                          <div className="font-medium">{angle.label}</div>
+                          <div className="text-xs text-gray-500">{angle.description}</div>
+                          <div className="text-xs text-gray-400 italic mt-1">"{angle.example}"</div>
                         </div>
                       </div>
                     </SelectItem>

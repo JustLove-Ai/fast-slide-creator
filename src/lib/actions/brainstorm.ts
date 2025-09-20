@@ -3,15 +3,33 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/db/index'
 import { CreateBrainstormData, Brainstorm } from '@/types'
+import { getOrCreateDemoUser } from '@/lib/user'
 
+// Overloaded function signatures
+export async function createBrainstorm(data: CreateBrainstormData): Promise<Brainstorm>
+export async function createBrainstorm(userId: string, data: CreateBrainstormData): Promise<Brainstorm>
 export async function createBrainstorm(
-  userId: string,
-  data: CreateBrainstormData
+  userIdOrData: string | CreateBrainstormData,
+  data?: CreateBrainstormData
 ): Promise<Brainstorm> {
   try {
+    let userId: string
+    let brainstormData: CreateBrainstormData
+
+    if (typeof userIdOrData === 'string') {
+      // Called with userId as first param
+      userId = userIdOrData
+      brainstormData = data!
+    } else {
+      // Called with just data, get demo user
+      const user = await getOrCreateDemoUser()
+      userId = user.id
+      brainstormData = userIdOrData
+    }
+
     const brainstorm = await prisma.brainstorm.create({
       data: {
-        ...data,
+        ...brainstormData,
         userId,
       },
     })

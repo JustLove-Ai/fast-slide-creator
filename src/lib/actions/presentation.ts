@@ -8,35 +8,55 @@ import {
   PresentationWithDetails,
   ContentAngle
 } from '@/types'
+import { getOrCreateDemoUser } from '@/lib/user'
 
+type PresentationDataWithRefs = CreatePresentationData & {
+  brainstormId: string
+  contextProfileId: string
+}
+
+// Overloaded function signatures
+export async function createPresentation(data: PresentationDataWithRefs): Promise<Presentation>
+export async function createPresentation(userId: string, data: PresentationDataWithRefs): Promise<Presentation>
 export async function createPresentation(
-  userId: string,
-  data: CreatePresentationData & {
-    brainstormId: string
-    contextProfileId: string
-  }
+  userIdOrData: string | PresentationDataWithRefs,
+  data?: PresentationDataWithRefs
 ): Promise<Presentation> {
   try {
+    let userId: string
+    let presentationData: PresentationDataWithRefs
+
+    if (typeof userIdOrData === 'string') {
+      // Called with userId as first param
+      userId = userIdOrData
+      presentationData = data!
+    } else {
+      // Called with just data, get demo user
+      const user = await getOrCreateDemoUser()
+      userId = user.id
+      presentationData = userIdOrData
+    }
+
     // Validate that the brainstorm and context profile exist and belong to the user
     const brainstorm = await prisma.brainstorm.findFirst({
-      where: { id: data.brainstormId, userId }
+      where: { id: presentationData.brainstormId, userId }
     })
 
     if (!brainstorm) {
-      throw new Error(`Brainstorm ${data.brainstormId} not found or doesn't belong to user ${userId}`)
+      throw new Error(`Brainstorm ${presentationData.brainstormId} not found or doesn't belong to user ${userId}`)
     }
 
     const contextProfile = await prisma.contextProfile.findFirst({
-      where: { id: data.contextProfileId, userId }
+      where: { id: presentationData.contextProfileId, userId }
     })
 
     if (!contextProfile) {
-      throw new Error(`Context profile ${data.contextProfileId} not found or doesn't belong to user ${userId}`)
+      throw new Error(`Context profile ${presentationData.contextProfileId} not found or doesn't belong to user ${userId}`)
     }
 
     const presentation = await prisma.presentation.create({
       data: {
-        ...data,
+        ...presentationData,
         userId,
       },
     })

@@ -148,6 +148,18 @@ export function TldrawCanvas({ width, height, data, onChange, showToolbar = true
         <Tldraw
           onMount={handleMount}
           persistenceKey={undefined} // Disable auto-persistence since we handle it manually
+          components={showToolbar ? undefined : {
+            // In presentation mode, hide only redundant UI but keep drawing tools
+            MainMenu: null,
+            HelpMenu: null,
+            NavigationPanel: null,
+            PageMenu: () => null, // Hide page controls but keep drawing tools
+            Minimap: null,
+            DebugPanel: null,
+            DebugMenu: null,
+            MenuPanel: null
+            // Keep Toolbar, StylePanel, ActionsMenu, ZoomMenu for drawing functionality
+          }}
         />
       </div>
     </div>

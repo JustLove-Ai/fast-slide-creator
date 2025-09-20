@@ -76,6 +76,65 @@ export const CONTENT_ANGLES: Record<ContentAngle, ContentAngleDefinition> = {
         example: 'Step 1: Pick an idea. Step 2: Write 3 prompts. Step 3: Compare results. Step 4: Keep the spark, toss the junk.'
       }
     }
+  },
+  YOUTUBE: {
+    name: 'YOUTUBE',
+    label: 'YouTube Framework',
+    description: 'Hook - Setup - Value Points (YouTube optimized)',
+    components: {
+      hook: {
+        label: 'Hook',
+        description: 'Grab attention in the first 15 seconds with an intriguing statement or question',
+        example: 'This one productivity trick changed how I work forever.'
+      },
+      setup: {
+        label: 'Setup',
+        description: 'Provide context and set expectations for what viewers will learn',
+        example: 'Today I\'m going to show you the exact method I use to get twice as much done in half the time.'
+      },
+      valuePoint1: {
+        label: 'Value Point 1',
+        description: 'First key insight or actionable takeaway',
+        example: 'Start with the hardest task when your brain is fresh.'
+      },
+      valuePoint2: {
+        label: 'Value Point 2',
+        description: 'Second key insight or actionable takeaway',
+        example: 'Use the 2-minute rule: if it takes less than 2 minutes, do it now.'
+      },
+      valuePoint3: {
+        label: 'Value Point 3',
+        description: 'Third key insight or actionable takeaway',
+        example: 'Batch similar tasks together to minimize context switching.'
+      },
+      valuePoint4: {
+        label: 'Value Point 4 (Optional)',
+        description: 'Additional insight for comprehensive coverage',
+        example: 'End each day by planning the next morning\'s priorities.'
+      }
+    }
+  },
+  WHATWHYHOW: {
+    name: 'WHATWHYHOW',
+    label: 'What-Why-How Framework',
+    description: 'What - Why - How (Clear explanatory structure)',
+    components: {
+      what: {
+        label: 'What',
+        description: 'Define and explain what you\'re presenting clearly',
+        example: 'The Pomodoro Technique is a time management method using 25-minute focused work sessions.'
+      },
+      why: {
+        label: 'Why',
+        description: 'Explain the importance, benefits, and reasoning behind it',
+        example: 'It works because it leverages your brain\'s natural attention cycles and prevents burnout through regular breaks.'
+      },
+      how: {
+        label: 'How',
+        description: 'Provide step-by-step instructions for implementation',
+        example: 'Set a 25-minute timer, work on one task, take a 5-minute break, then repeat. After 4 cycles, take a longer 30-minute break.'
+      }
+    }
   }
 }
 

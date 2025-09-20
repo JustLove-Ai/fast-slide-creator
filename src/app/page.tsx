@@ -53,7 +53,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Choose proven presentation frameworks (CUB, PASE, HEAR) for maximum impact
+                  Choose proven presentation frameworks (CUB, PASE, HEAR, YouTube, What-Why-How) for maximum impact
                 </CardDescription>
               </CardContent>
             </Card>
@@ -83,7 +83,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
             <Card className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -128,6 +128,36 @@ export default function Home() {
                 <div><strong>Empathy:</strong> Show understanding</div>
                 <div><strong>Authority:</strong> Build credibility</div>
                 <div><strong>Roadmap:</strong> Guide next steps</div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <CardTitle className="text-red-600">YouTube Framework</CardTitle>
+                </div>
+                <CardDescription>Hook - Setup - Value Points</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div><strong>Hook:</strong> Grab attention in 15s</div>
+                <div><strong>Setup:</strong> Set expectations</div>
+                <div><strong>Value Points:</strong> 3-4 key takeaways</div>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
+                  <CardTitle className="text-orange-600">What-Why-How</CardTitle>
+                </div>
+                <CardDescription>Clear explanatory structure</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div><strong>What:</strong> Define clearly</div>
+                <div><strong>Why:</strong> Explain importance</div>
+                <div><strong>How:</strong> Provide steps</div>
               </CardContent>
             </Card>
           </div>

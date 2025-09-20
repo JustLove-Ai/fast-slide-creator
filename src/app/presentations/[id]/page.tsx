@@ -48,6 +48,7 @@ export default async function PresentationPage({ params }: PresentationPageProps
         <SlideViewer
           slides={presentation.slides}
           presentationTitle={presentation.title}
+          presentationId={presentation.id}
         />
       </Suspense>
 

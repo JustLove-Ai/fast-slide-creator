@@ -123,13 +123,11 @@ export async function createDefaultContextProfile(data: {
     const contextProfile = await prisma.contextProfile.create({
       data: {
         name: data.name,
-        description: `Auto-generated context profile for ${data.audience}`,
         businessType: 'General',
         targetAudience: data.audience,
-        objectives: data.objectives,
+        objectives: Array.isArray(data.objectives) ? data.objectives.join(', ') : data.objectives,
+        preferences: typeof data.preferences === 'object' ? JSON.stringify(data.preferences) : data.preferences,
         brandTone: data.preferences?.tone || 'professional',
-        visualStyle: data.preferences?.style || 'modern',
-        additionalRequirements: '',
         userId: user.id
       }
     })

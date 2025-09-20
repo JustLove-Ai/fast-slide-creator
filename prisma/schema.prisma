@@ -63,6 +63,7 @@ model Presentation {
   id               String      @id @default(auto()) @map("_id") @db.ObjectId
   title            String
   contentAngle     ContentAngle // CUB, PASE, or HEAR
+  hookAngle        HookAngle?   // Fortune Teller, Experimenter, etc.
   aiGeneratedData  Json?        // Store AI generation metadata
   narration        String?      // Generated narration text
   createdAt        DateTime     @default(now())
@@ -87,6 +88,7 @@ model Slide {
   content          String?       // Text content
   imageUrl         String?       // Image for traditional slides
   canvasData       Json?         // Fabric.js canvas JSON for canvas slides
+  themeData        Json?         // Theme configuration and custom colors
   transition       String?       // Transition type
   narrationSegment String?       // Narration for this slide
   createdAt        DateTime      @default(now())
@@ -98,9 +100,11 @@ model Slide {
 
 // Enums for content angles and slide templates
 enum ContentAngle {
-  CUB   // Contrarian-Useful-Bridge
-  PASE  // Problem-Agitate-Solve-Expand
-  HEAR  // Hook-Empathy-Authority-Roadmap
+  CUB       // Contrarian-Useful-Bridge
+  PASE      // Problem-Agitate-Solve-Expand
+  HEAR      // Hook-Empathy-Authority-Roadmap
+  YOUTUBE   // Hook-Setup-Value Points (YouTube format)
+  WHATWHYHOW // What-Why-How structure
 }
 
 enum SlideTemplate {
@@ -113,4 +117,13 @@ enum SlideTemplate {
   FULL_IMAGE
   FULL_CANVAS
   TRANSITION         // Smooth transition slides
+}
+
+enum HookAngle {
+  FORTUNE_TELLER     // Pits today vs tomorrow to spark curiosity
+  EXPERIMENTER       // "I tried X so you don't have to"
+  TEACHER           // Extracts lesson/framework step-by-step
+  MAGICIAN          // Scroll-stopper with striking visual/sound
+  INVESTIGATOR      // Reveals hidden insight or secret
+  CONTRARIAN        // Takes stance against common wisdom
 }

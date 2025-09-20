@@ -25,7 +25,7 @@ export async function createSlide(
 
 export async function updateSlide(
   id: string,
-  data: Partial<CreateSlideData>
+  data: Partial<CreateSlideData & { themeData?: any }>
 ): Promise<Slide> {
   try {
     const slide = await prisma.slide.update({

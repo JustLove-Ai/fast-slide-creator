@@ -9,7 +9,7 @@ import { Slide, SlideTemplate, SlideTheme, CustomThemeOptions } from '@/types'
 import { SlideEditor } from './slide-editor'
 import { SlideDesigner } from './slide-designer'
 import { TldrawCanvas } from './tldraw-canvas'
-import { updateSlide } from '@/lib/actions/slide'
+import { updateSlide, createSlide, deleteSlide } from '@/lib/actions/slide'
 import { defaultThemes, getThemeStyles, getThemeTextStyles } from '@/lib/themes'
 import {
   ChevronLeft,
@@ -26,15 +26,23 @@ import {
   Type,
   Eraser,
   Image as ImageIcon,
-  Palette
+  Palette,
+  Plus,
+  Trash2,
+  Copy,
+  MoreHorizontal,
+  Save,
+  CheckCircle,
+  X
 } from 'lucide-react'
 
 interface SlideViewerProps {
   slides: Slide[]
   presentationTitle: string
+  presentationId: string
 }
 
-export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
+export function SlideViewer({ slides, presentationTitle, presentationId }: SlideViewerProps) {
   const router = useRouter()
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -44,6 +52,9 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
   const [slidesState, setSlidesState] = useState(slides)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 450 })
   const [forceRender, setForceRender] = useState(0)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [isPresentMode, setIsPresentMode] = useState(false)
 
   const currentSlide = slidesState[currentSlideIndex]
 
@@ -71,16 +82,24 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
   useEffect(() => {
     const updateCanvasSize = () => {
       if (typeof window !== 'undefined') {
-        const width = Math.floor(window.innerWidth * 0.6)
-        const height = Math.floor(window.innerHeight * 0.7)
-        setCanvasSize({ width, height })
+        if (isPresentMode) {
+          // In presentation mode, use full screen dimensions
+          const width = Math.floor(window.innerWidth * 0.95)
+          const height = Math.floor(window.innerHeight * 0.9)
+          setCanvasSize({ width, height })
+        } else {
+          // Normal mode with reduced size
+          const width = Math.floor(window.innerWidth * 0.6)
+          const height = Math.floor(window.innerHeight * 0.7)
+          setCanvasSize({ width, height })
+        }
       }
     }
 
     updateCanvasSize()
     window.addEventListener('resize', updateCanvasSize)
     return () => window.removeEventListener('resize', updateCanvasSize)
-  }, [])
+  }, [isPresentMode])
 
   const goToNextSlide = () => {
     if (currentSlideIndex < slidesState.length - 1) {
@@ -120,6 +139,161 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
     setIsEditorOpen(false)
   }
 
+  const handleAddSlide = async () => {
+    try {
+      const newSlide = await createSlide(presentationId, {
+        order: slidesState.length,
+        template: 'FULL_TEXT',
+        title: `New Slide ${slidesState.length + 1}`,
+        content: 'Click Edit to add content to this slide.'
+      })
+
+      setSlidesState(prev => [...prev, newSlide])
+      setCurrentSlideIndex(slidesState.length) // Navigate to new slide
+    } catch (error) {
+      // Failed to create slide
+    }
+  }
+
+  const handleDuplicateSlide = async (slide: Slide) => {
+    try {
+      const duplicatedSlide = await createSlide(presentationId, {
+        order: slide.order + 1,
+        template: slide.template,
+        title: slide.title ? `${slide.title} (Copy)` : 'Duplicate Slide',
+        content: slide.content,
+        imageUrl: slide.imageUrl,
+        canvasData: slide.canvasData,
+        themeData: (slide as any).themeData,
+        transition: slide.transition,
+        narrationSegment: slide.narrationSegment
+      })
+
+      // Update order of slides that come after this one
+      const updatedSlides = slidesState.map(s =>
+        s.order > slide.order ? { ...s, order: s.order + 1 } : s
+      )
+
+      setSlidesState(prev => {
+        const slideIndex = prev.findIndex(s => s.id === slide.id)
+        const newSlides = [...prev]
+        newSlides.splice(slideIndex + 1, 0, duplicatedSlide)
+        return newSlides
+      })
+    } catch (error) {
+      // Failed to duplicate slide
+    }
+  }
+
+  const handleDeleteSlide = async (slide: Slide) => {
+    if (slidesState.length <= 1) {
+      // Don't allow deleting the last slide
+      return
+    }
+
+    if (!confirm('Are you sure you want to delete this slide?')) {
+      return
+    }
+
+    try {
+      await deleteSlide(slide.id)
+
+      const slideIndex = slidesState.findIndex(s => s.id === slide.id)
+      setSlidesState(prev => prev.filter(s => s.id !== slide.id))
+
+      // Adjust current slide index if necessary
+      if (currentSlideIndex >= slideIndex && currentSlideIndex > 0) {
+        setCurrentSlideIndex(prev => prev - 1)
+      } else if (currentSlideIndex === slideIndex && slideIndex === slidesState.length - 1) {
+        setCurrentSlideIndex(slideIndex - 1)
+      }
+    } catch (error) {
+      // Failed to delete slide
+    }
+  }
+
+  const handleManualSave = async () => {
+    if (!currentSlide || isSaving) return
+
+    setIsSaving(true)
+    setSaveStatus('saving')
+
+    try {
+      const slideToSave = {
+        title: currentSlide.title,
+        content: currentSlide.content,
+        imageUrl: currentSlide.imageUrl,
+        canvasData: currentSlide.canvasData,
+        template: currentSlide.template,
+        transition: currentSlide.transition,
+        narrationSegment: currentSlide.narrationSegment,
+        themeData: (currentSlide as any).themeData
+      }
+
+      await updateSlide(currentSlide.id, slideToSave)
+
+      setSaveStatus('saved')
+
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setSaveStatus('idle')
+      }, 2000)
+    } catch (error) {
+      setSaveStatus('error')
+      setTimeout(() => {
+        setSaveStatus('idle')
+      }, 3000)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const enterPresentMode = () => {
+    setIsPresentMode(true)
+    setIsEditorOpen(false)
+    setIsDesignerOpen(false)
+  }
+
+  const exitPresentMode = () => {
+    setIsPresentMode(false)
+  }
+
+  // Keyboard navigation for presentation mode
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (!isPresentMode) return
+
+      switch (event.key) {
+        case 'ArrowRight':
+        case ' ': // Spacebar
+          event.preventDefault()
+          goToNextSlide()
+          break
+        case 'ArrowLeft':
+          event.preventDefault()
+          goToPreviousSlide()
+          break
+        case 'Escape':
+          event.preventDefault()
+          exitPresentMode()
+          break
+        case 'Home':
+          event.preventDefault()
+          setCurrentSlideIndex(0)
+          break
+        case 'End':
+          event.preventDefault()
+          setCurrentSlideIndex(slidesState.length - 1)
+          break
+      }
+    }
+
+    if (isPresentMode) {
+      window.addEventListener('keydown', handleKeyPress)
+      return () => window.removeEventListener('keydown', handleKeyPress)
+    }
+  }, [isPresentMode, currentSlideIndex, slidesState.length])
+
   const handleSlideUpdate = (updatedSlide: Slide) => {
     const previousSlide = slidesState.find(s => s.id === updatedSlide.id)
 
@@ -140,15 +314,40 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
     }
   }
 
-  const handleThemeUpdate = (updatedSlide: Slide & { theme?: SlideTheme; customTheme?: CustomThemeOptions }) => {
-    handleSlideUpdate(updatedSlide)
+  const handleThemeUpdate = async (updatedSlide: Slide & { theme?: SlideTheme; customTheme?: CustomThemeOptions }) => {
+    // Create theme data for database storage
+    const themeData = {
+      theme: updatedSlide.theme,
+      customTheme: updatedSlide.customTheme
+    }
+
+    // Update slide in memory with theme data included
+    const slideWithThemeData = {
+      ...updatedSlide,
+      themeData
+    }
+
+    handleSlideUpdate(slideWithThemeData)
+
+    // Save theme data to database
+    try {
+      await updateSlide(updatedSlide.id, { themeData })
+    } catch (error) {
+      // Failed to save theme data
+    }
   }
 
   const handleApplyThemeToAll = async (theme: SlideTheme, customTheme?: CustomThemeOptions) => {
+    const themeData = {
+      theme,
+      customTheme
+    }
+
     const updatedSlides = slidesState.map(slide => ({
       ...slide,
       theme,
-      customTheme
+      customTheme,
+      themeData
     }))
 
     setSlidesState(updatedSlides)
@@ -156,11 +355,8 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
     // Update all slides in database
     try {
       await Promise.all(
-        updatedSlides.map(slide =>
-          updateSlide(slide.id, {
-            // Store theme data in a way that works with your schema
-            // You might need to add theme fields to the database schema
-          })
+        slidesState.map(slide =>
+          updateSlide(slide.id, { themeData })
         )
       )
     } catch (error) {
@@ -169,6 +365,39 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
   }
 
   const getSlideTheme = (slide: Slide): SlideTheme => {
+    // Check if slide has theme data from database
+    if ((slide as any).themeData) {
+      const themeData = (slide as any).themeData
+
+      // If it has a custom theme, create it from the stored data
+      if (themeData.customTheme) {
+        const baseTheme = themeData.theme || defaultThemes[0]
+        return {
+          name: 'custom',
+          label: 'Custom',
+          colors: {
+            background: themeData.customTheme.backgroundColor || baseTheme.colors.background,
+            surface: baseTheme.colors.surface,
+            primary: themeData.customTheme.titleColor || baseTheme.colors.primary,
+            secondary: baseTheme.colors.secondary,
+            accent: themeData.customTheme.accentColor || baseTheme.colors.accent,
+            text: themeData.customTheme.textColor || baseTheme.colors.text,
+            textSecondary: baseTheme.colors.textSecondary,
+            border: baseTheme.colors.border
+          },
+          fontFamily: baseTheme.fontFamily,
+          borderRadius: baseTheme.borderRadius,
+          shadows: baseTheme.shadows
+        }
+      }
+
+      // Return the stored theme
+      if (themeData.theme) {
+        return themeData.theme
+      }
+    }
+
+    // Fallback to memory theme or default
     return (slide as any).theme || defaultThemes[0]
   }
 
@@ -277,12 +506,27 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
       case 'text-right-canvas-left':
         const isTextLeftCanvas = layout === 'text-left-canvas-right'
         return (
-          <div className={`flex h-full ${isTextLeftCanvas ? 'flex-row' : 'flex-row-reverse'}`}>
-            <div className="w-2/5 p-8 flex flex-col justify-center bg-gray-50">
-              <h2 className="text-3xl font-bold mb-6 text-gray-900">{slide.title}</h2>
+          <div
+            className={`flex h-full ${isTextLeftCanvas ? 'flex-row' : 'flex-row-reverse'}`}
+            style={themeStyles}
+          >
+            <div
+              className="w-2/5 p-8 flex flex-col justify-center"
+              style={{ backgroundColor: theme.colors.surface }}
+            >
+              <h2
+                className="text-3xl font-bold mb-6"
+                style={{ color: theme.colors.primary, fontFamily: theme.fontFamily }}
+              >
+                {slide.title}
+              </h2>
               <div className="space-y-3">
                 {contentLines.map((line, index) => (
-                  <p key={index} className="text-base text-gray-700 leading-relaxed">
+                  <p
+                    key={index}
+                    className="text-base leading-relaxed"
+                    style={{ color: theme.colors.text, fontFamily: theme.fontFamily }}
+                  >
                     {line}
                   </p>
                 ))}
@@ -293,7 +537,13 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
                 width={canvasSize.width}
                 height={canvasSize.height}
                 data={slide.canvasData}
-                onChange={(data) => handleSlideUpdate({...slide, canvasData: data})}
+                onChange={(data) => handleSlideUpdate({
+                  ...slide,
+                  canvasData: data,
+                  theme: (slide as any).theme,
+                  customTheme: (slide as any).customTheme
+                })}
+                showToolbar={!isPresentMode}
               />
             </div>
           </div>
@@ -301,11 +551,23 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
       case 'full-text':
         return (
-          <div className="p-16 flex flex-col justify-center h-full">
-            <h2 className="text-5xl font-bold mb-12 text-gray-900 text-center">{slide.title}</h2>
+          <div
+            className="p-16 flex flex-col justify-center h-full"
+            style={themeStyles}
+          >
+            <h2
+              className="text-5xl font-bold mb-12 text-center"
+              style={{ color: theme.colors.primary, fontFamily: theme.fontFamily }}
+            >
+              {slide.title}
+            </h2>
             <div className="max-w-4xl mx-auto space-y-6">
               {contentLines.map((line, index) => (
-                <p key={index} className="text-xl text-gray-700 leading-relaxed text-center">
+                <p
+                  key={index}
+                  className="text-xl leading-relaxed text-center"
+                  style={{ color: theme.colors.text, fontFamily: theme.fontFamily }}
+                >
                   {line}
                 </p>
               ))}
@@ -315,10 +577,21 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
       case 'full-canvas':
         return (
-          <div className="h-full flex flex-col relative group">
+          <div
+            className="h-full flex flex-col relative group"
+            style={themeStyles}
+          >
             {slide.title && (
               <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
-                <h2 className="text-2xl font-bold text-gray-900 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm">
+                <h2
+                  className="text-2xl font-bold px-4 py-2 rounded-lg shadow-sm"
+                  style={{
+                    color: theme.colors.primary,
+                    backgroundColor: `${theme.colors.surface}e6`,
+                    fontFamily: theme.fontFamily,
+                    backdropFilter: 'blur(4px)'
+                  }}
+                >
                   {slide.title}
                 </h2>
               </div>
@@ -330,8 +603,13 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
                 width={canvasSize.width * 1.6}
                 height={canvasSize.height * 1.4}
                 data={slide.canvasData}
-                onChange={(data) => handleSlideUpdate({...slide, canvasData: data})}
-                showToolbar={false}
+                onChange={(data) => handleSlideUpdate({
+                  ...slide,
+                  canvasData: data,
+                  theme: (slide as any).theme,
+                  customTheme: (slide as any).customTheme
+                })}
+                showToolbar={!isPresentMode}
                 className="h-full"
               />
             </div>
@@ -340,10 +618,21 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
       case 'full-image':
         return (
-          <div className="h-full flex flex-col">
+          <div
+            className="h-full flex flex-col"
+            style={themeStyles}
+          >
             {slide.title && (
               <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-                <h2 className="text-2xl font-bold text-gray-900 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm">
+                <h2
+                  className="text-2xl font-bold px-4 py-2 rounded-lg shadow-sm"
+                  style={{
+                    color: theme.colors.primary,
+                    backgroundColor: `${theme.colors.surface}e6`,
+                    fontFamily: theme.fontFamily,
+                    backdropFilter: 'blur(4px)'
+                  }}
+                >
                   {slide.title}
                 </h2>
               </div>
@@ -372,11 +661,29 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
       case 'transition':
         return (
-          <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+          <div
+            className="h-full flex items-center justify-center"
+            style={{
+              ...themeStyles,
+              background: theme.colors.background.includes('gradient')
+                ? theme.colors.background
+                : `linear-gradient(135deg, ${theme.colors.surface} 0%, ${theme.colors.background} 100%)`
+            }}
+          >
             <div className="text-center">
-              <h2 className="text-5xl font-bold text-gray-800 mb-4">{slide.title}</h2>
+              <h2
+                className="text-5xl font-bold mb-4"
+                style={{ color: theme.colors.primary, fontFamily: theme.fontFamily }}
+              >
+                {slide.title}
+              </h2>
               {slide.content && (
-                <p className="text-xl text-gray-600">{slide.content}</p>
+                <p
+                  className="text-xl"
+                  style={{ color: theme.colors.textSecondary, fontFamily: theme.fontFamily }}
+                >
+                  {slide.content}
+                </p>
               )}
             </div>
           </div>
@@ -384,11 +691,23 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
       default:
         return (
-          <div className="p-12 flex flex-col justify-center h-full">
-            <h2 className="text-4xl font-bold mb-8 text-gray-900">{slide.title}</h2>
+          <div
+            className="p-12 flex flex-col justify-center h-full"
+            style={themeStyles}
+          >
+            <h2
+              className="text-4xl font-bold mb-8"
+              style={{ color: theme.colors.primary, fontFamily: theme.fontFamily }}
+            >
+              {slide.title}
+            </h2>
             <div className="space-y-4">
               {contentLines.map((line, index) => (
-                <p key={index} className="text-lg text-gray-700 leading-relaxed">
+                <p
+                  key={index}
+                  className="text-lg leading-relaxed"
+                  style={{ color: theme.colors.text, fontFamily: theme.fontFamily }}
+                >
                   {line}
                 </p>
               ))}
@@ -419,6 +738,41 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline">{currentSlide.template.replace('_', ' ')}</Badge>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualSave}
+              disabled={isSaving}
+              className={`${
+                saveStatus === 'saved' ? 'border-green-500 text-green-600' :
+                saveStatus === 'error' ? 'border-red-500 text-red-600' :
+                ''
+              }`}
+            >
+              {saveStatus === 'saving' ? (
+                <>
+                  <div className="animate-spin h-4 w-4 mr-2 border-2 border-current border-t-transparent rounded-full" />
+                  Saving...
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Saved
+                </>
+              ) : saveStatus === 'error' ? (
+                <>
+                  <X className="h-4 w-4 mr-2" />
+                  Error
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </>
+              )}
+            </Button>
+
             <Button variant="outline" size="sm" onClick={() => handleEditSlide(currentSlide)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
@@ -427,6 +781,37 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
               <Palette className="h-4 w-4 mr-2" />
               Design
             </Button>
+
+            {/* Navigation Controls */}
+            <div className="flex items-center gap-1 ml-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousSlide}
+                disabled={currentSlideIndex === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextSlide}
+                disabled={currentSlideIndex === slidesState.length - 1}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={enterPresentMode}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Fullscreen className="h-4 w-4 mr-2" />
+                Present
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -446,75 +831,72 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
 
           {/* Bottom Navigation */}
           <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToPreviousSlide}
-                  disabled={currentSlideIndex === 0}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToNextSlide}
-                  disabled={currentSlideIndex === slidesState.length - 1}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={resetPresentation}>
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-                <Button variant="outline" size="sm" onClick={togglePlayPause}>
-                  {isPlaying ? (
-                    <>
-                      <Pause className="h-4 w-4 mr-2" />
-                      Pause
-                    </>
-                  ) : (
-                    <>
-                      <Play className="h-4 w-4 mr-2" />
-                      Play
-                    </>
-                  )}
-                </Button>
-                {currentSlide.narrationSegment && (
-                  <Button variant="outline" size="sm">
-                    <Volume2 className="h-4 w-4 mr-2" />
-                    Audio
-                  </Button>
-                )}
-              </div>
-            </div>
 
             {/* Slide Thumbnails */}
             <div className="flex gap-2 overflow-x-auto py-2">
               {slidesState.map((slide, index) => (
-                <button
-                  key={slide.id}
-                  onClick={() => goToSlide(index)}
-                  className={`flex-shrink-0 w-32 h-18 bg-white border-2 rounded-lg overflow-hidden transition-colors ${
-                    index === currentSlideIndex
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-600 p-2">
-                    <div className="text-center">
-                      <div className="font-semibold truncate">{slide.title}</div>
-                      <div className="text-xs opacity-75">{index + 1}</div>
+                <div key={slide.id} className="relative group flex-shrink-0">
+                  <button
+                    onClick={() => goToSlide(index)}
+                    className={`w-32 h-18 bg-white border-2 rounded-lg overflow-hidden transition-colors ${
+                      index === currentSlideIndex
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-600 p-2">
+                      <div className="text-center">
+                        <div className="font-semibold truncate">{slide.title}</div>
+                        <div className="text-xs opacity-75">{index + 1}</div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Slide Actions */}
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-6 h-6 p-0 bg-white/90 hover:bg-white"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDuplicateSlide(slide)
+                        }}
+                        title="Duplicate slide"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                      {slidesState.length > 1 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-6 h-6 p-0 bg-white/90 hover:bg-red-50 text-red-600"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSlide(slide)
+                          }}
+                          title="Delete slide"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
+
+              {/* Add New Slide Button */}
+              <button
+                onClick={handleAddSlide}
+                className="flex-shrink-0 w-32 h-18 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center hover:border-gray-400 hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+                title="Add new slide"
+              >
+                <div className="text-center">
+                  <Plus className="h-6 w-6 mx-auto mb-1" />
+                  <div className="text-xs">Add Slide</div>
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -536,6 +918,115 @@ export function SlideViewer({ slides, presentationTitle }: SlideViewerProps) {
         onSave={handleThemeUpdate}
         onApplyToAll={handleApplyThemeToAll}
       />
+
+      {/* Presentation Mode */}
+      {isPresentMode && (
+        <div className="fixed inset-0 bg-black z-50 flex flex-col">
+          {/* Presentation Controls - Slightly visible by default, fully visible on hover */}
+          <div className="absolute top-4 left-4 right-4 z-10 opacity-30 hover:opacity-100 transition-opacity group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 bg-black/50 rounded-lg px-4 py-2">
+                <span className="text-white text-sm">
+                  {currentSlideIndex + 1} / {slidesState.length}
+                </span>
+                <span className="text-white/70 text-xs">•</span>
+                <span className="text-white/70 text-xs">{currentSlide.title}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousSlide}
+                  disabled={currentSlideIndex === 0}
+                  className="bg-black/50 border-white/20 text-white hover:bg-black/70"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextSlide}
+                  disabled={currentSlideIndex === slidesState.length - 1}
+                  className="bg-black/50 border-white/20 text-white hover:bg-black/70"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exitPresentMode}
+                  className="bg-black/50 border-white/20 text-white hover:bg-black/70"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Presentation Content */}
+          <div className="flex-1 relative">
+            <div className="h-full w-full">
+              {renderSlideContent(currentSlide)}
+            </div>
+          </div>
+
+          {/* Bottom Navigation - Slightly visible by default, fully visible on hover */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 opacity-30 hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-2 bg-black/50 rounded-lg px-4 py-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentSlideIndex(0)}
+                className="text-white hover:bg-white/10"
+                title="Go to first slide"
+              >
+                First
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToPreviousSlide}
+                disabled={currentSlideIndex === 0}
+                className="text-white hover:bg-white/10"
+                title="Previous slide (←)"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-white/70 text-sm px-2">
+                {currentSlideIndex + 1} / {slidesState.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToNextSlide}
+                disabled={currentSlideIndex === slidesState.length - 1}
+                className="text-white hover:bg-white/10"
+                title="Next slide (→)"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentSlideIndex(slidesState.length - 1)}
+                className="text-white hover:bg-white/10"
+                title="Go to last slide"
+              >
+                Last
+              </Button>
+            </div>
+          </div>
+
+          {/* Keyboard shortcuts help */}
+          <div className="absolute bottom-4 right-4 opacity-20 hover:opacity-100 transition-opacity">
+            <div className="bg-black/50 rounded-lg px-3 py-2 text-white/70 text-xs">
+              <div>← → : Navigate</div>
+              <div>Esc : Exit</div>
+              <div>Space : Next</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

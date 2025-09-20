@@ -5,7 +5,8 @@ import {
   Presentation,
   Slide,
   ContentAngle,
-  SlideTemplate
+  SlideTemplate,
+  HookAngle
 } from '@prisma/client'
 
 // Export Prisma types
@@ -16,7 +17,8 @@ export type {
   Presentation,
   Slide,
   ContentAngle,
-  SlideTemplate
+  SlideTemplate,
+  HookAngle
 }
 
 // Extended types with relations

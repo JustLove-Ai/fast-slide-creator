@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Slide, SlideTheme, CustomThemeOptions } from '@/types'
 import { defaultThemes, getThemeByName, createCustomTheme, getThemeStyles } from '@/lib/themes'
+import { updateSlide } from '@/lib/actions/slide'
 import {
   Palette,
   Check,
@@ -84,20 +85,36 @@ export function SlideDesigner({ slide, isOpen, onClose, onSave, onApplyToAll }: 
     }
   }
 
-  const handleApplyToSlide = () => {
-    if (onSave) {
-      onSave({
-        ...slide,
-        theme: selectedTheme,
-        customTheme: isCustom ? customColors : undefined
-      })
+  const handleApplyToSlide = async () => {
+    const themeData = {
+      theme: selectedTheme,
+      customTheme: isCustom ? customColors : undefined
     }
-    onClose()
+
+    try {
+      await updateSlide(slide.id, { themeData })
+
+      if (onSave) {
+        onSave({
+          ...slide,
+          theme: selectedTheme,
+          customTheme: isCustom ? customColors : undefined
+        })
+      }
+      onClose()
+    } catch (error) {
+      // Failed to save theme
+    }
   }
 
-  const handleApplyToAllSlides = () => {
+  const handleApplyToAllSlides = async () => {
+    const themeData = {
+      theme: selectedTheme,
+      customTheme: isCustom ? customColors : undefined
+    }
+
     if (onApplyToAll) {
-      onApplyToAll(selectedTheme, isCustom ? customColors : undefined)
+      await onApplyToAll(selectedTheme, isCustom ? customColors : undefined, themeData)
     }
     onClose()
   }
