@@ -21,6 +21,7 @@ model User {
   brainstorms      Brainstorm[]
   contextProfiles  ContextProfile[]
   presentations    Presentation[]
+  imageLibrary     ImageLibrary[]
 }
 
 // Store user's raw concepts and ideas (reusable)
@@ -96,6 +97,25 @@ model Slide {
 
   presentationId String       @db.ObjectId
   presentation   Presentation @relation(fields: [presentationId], references: [id], onDelete: Cascade)
+}
+
+// Image library for storing and reusing generated images
+model ImageLibrary {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  url         String    // Image URL
+  prompt      String    // Original prompt used to generate the image
+  style       String    // Style used (realistic, illustration, etc.)
+  aiModel     String    // AI model used (gpt-image-1, dall-e-3, etc.)
+  tags        String[]  // Searchable tags
+  isGenerated Boolean   @default(true) // Whether it was AI generated or uploaded
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tags])
 }
 
 // Enums for content angles and slide templates

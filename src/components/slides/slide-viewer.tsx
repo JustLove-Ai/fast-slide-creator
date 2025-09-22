@@ -9,6 +9,7 @@ import { Slide, SlideTemplate, SlideTheme, CustomThemeOptions } from '@/types'
 import { SlideEditor } from './slide-editor'
 import { SlideDesigner } from './slide-designer'
 import { TldrawCanvas } from './tldraw-canvas'
+import { ImageLibrarySidebar } from './image-library'
 import { updateSlide, createSlide, deleteSlide } from '@/lib/actions/slide'
 import { defaultThemes, getThemeStyles, getThemeTextStyles } from '@/lib/themes'
 import {
@@ -33,7 +34,8 @@ import {
   MoreHorizontal,
   Save,
   CheckCircle,
-  X
+  X,
+  Images
 } from 'lucide-react'
 
 interface SlideViewerProps {
@@ -49,6 +51,7 @@ export function SlideViewer({ slides, presentationTitle, presentationId }: Slide
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [isDesignerOpen, setIsDesignerOpen] = useState(false)
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false)
   const [slidesState, setSlidesState] = useState(slides)
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 450 })
   const [forceRender, setForceRender] = useState(0)
@@ -132,11 +135,29 @@ export function SlideViewer({ slides, presentationTitle, presentationId }: Slide
   const handleEditSlide = (slide: Slide) => {
     setIsEditorOpen(true)
     setIsDesignerOpen(false)
+    setIsLibraryOpen(false)
   }
 
   const handleDesignSlide = (slide: Slide) => {
     setIsDesignerOpen(true)
     setIsEditorOpen(false)
+    setIsLibraryOpen(false)
+  }
+
+  const handleLibraryOpen = () => {
+    setIsLibraryOpen(true)
+    setIsEditorOpen(false)
+    setIsDesignerOpen(false)
+  }
+
+  const handleImageFromLibrary = (imageUrl: string) => {
+    if (currentSlide) {
+      const updatedSlide = {
+        ...currentSlide,
+        imageUrl
+      }
+      handleSlideUpdate(updatedSlide)
+    }
   }
 
   const handleAddSlide = async () => {
@@ -252,6 +273,7 @@ export function SlideViewer({ slides, presentationTitle, presentationId }: Slide
     setIsPresentMode(true)
     setIsEditorOpen(false)
     setIsDesignerOpen(false)
+    setIsLibraryOpen(false)
   }
 
   const exitPresentMode = () => {
@@ -781,6 +803,10 @@ export function SlideViewer({ slides, presentationTitle, presentationId }: Slide
               <Palette className="h-4 w-4 mr-2" />
               Design
             </Button>
+            <Button variant="outline" size="sm" onClick={handleLibraryOpen}>
+              <Images className="h-4 w-4 mr-2" />
+              Library
+            </Button>
 
             {/* Navigation Controls */}
             <div className="flex items-center gap-1 ml-4">
@@ -817,7 +843,7 @@ export function SlideViewer({ slides, presentationTitle, presentationId }: Slide
       </div>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex ${isEditorOpen || isDesignerOpen ? 'mr-96' : ''} transition-all duration-300`}>
+      <div className={`flex-1 flex ${isEditorOpen || isDesignerOpen || isLibraryOpen ? 'mr-96' : ''} transition-all duration-300`}>
         <div className="flex-1 flex flex-col">
           {/* Main Slide Display */}
           <div className="flex-1 bg-gray-100 dark:bg-gray-900 p-4">
@@ -917,6 +943,13 @@ export function SlideViewer({ slides, presentationTitle, presentationId }: Slide
         onClose={() => setIsDesignerOpen(false)}
         onSave={handleThemeUpdate}
         onApplyToAll={handleApplyThemeToAll}
+      />
+
+      {/* Image Library */}
+      <ImageLibrarySidebar
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        onImageSelect={handleImageFromLibrary}
       />
 
       {/* Presentation Mode */}

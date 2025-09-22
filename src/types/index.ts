@@ -6,7 +6,8 @@ import {
   Slide,
   ContentAngle,
   SlideTemplate,
-  HookAngle
+  HookAngle,
+  ImageLibrary
 } from '@prisma/client'
 
 // Export Prisma types
@@ -18,7 +19,8 @@ export type {
   Slide,
   ContentAngle,
   SlideTemplate,
-  HookAngle
+  HookAngle,
+  ImageLibrary
 }
 
 // Extended types with relations
@@ -134,4 +136,18 @@ export interface CustomThemeOptions {
 export interface SlideWithTheme extends Slide {
   theme?: SlideTheme
   customTheme?: CustomThemeOptions
+}
+
+// Image Library types
+export type ImageLibraryWithUser = ImageLibrary & {
+  user: User
+}
+
+export type CreateImageLibraryData = Omit<ImageLibrary, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
+
+export interface ImageLibraryFilters {
+  style?: string
+  tags?: string[]
+  aiModel?: string
+  search?: string
 }

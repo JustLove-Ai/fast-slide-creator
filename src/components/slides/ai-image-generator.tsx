@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Wand2, Sparkles, RefreshCw } from 'lucide-react'
+import { Wand2, Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
+import { generateImages } from '@/lib/actions/ai-image-generation'
 
 interface AIImageGeneratorProps {
   onImageGenerated: (url: string) => void
@@ -18,9 +19,10 @@ interface AIImageGeneratorProps {
 
 export function AIImageGenerator({ onImageGenerated, slideContext }: AIImageGeneratorProps) {
   const [prompt, setPrompt] = useState('')
-  const [style, setStyle] = useState('realistic')
+  const [style, setStyle] = useState<'realistic' | 'illustration' | 'abstract' | 'minimalist' | 'corporate' | 'infographic'>('realistic')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedImages, setGeneratedImages] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
 
   const styles = [
     { value: 'realistic', label: 'Realistic' },
@@ -50,28 +52,31 @@ export function AIImageGenerator({ onImageGenerated, slideContext }: AIImageGene
 
   const generateImage = async () => {
     if (!prompt.trim()) {
-      alert('Please enter a prompt')
+      setError('Please enter a prompt')
       return
     }
 
     setIsGenerating(true)
+    setError(null)
+    setGeneratedImages([])
 
     try {
-      // Mock AI image generation
-      // In production, this would call OpenAI DALL-E or similar service
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate API call
+      const result = await generateImages({
+        prompt: prompt.trim(),
+        style,
+        size: '1024x1024',
+        n: 1 // Generate 1 image at a time - user can regenerate if needed
+      })
 
-      // Generate placeholder images for demo
-      const mockImages = [
-        `https://picsum.photos/400/300?random=${Date.now()}&blur=1`,
-        `https://picsum.photos/400/300?random=${Date.now() + 1}&grayscale`,
-        `https://picsum.photos/400/300?random=${Date.now() + 2}`
-      ]
-
-      setGeneratedImages(mockImages)
+      if (result.success && result.images) {
+        setGeneratedImages(result.images)
+        setError(null)
+      } else {
+        setError(result.error || 'Failed to generate images')
+      }
     } catch (error) {
       console.error('Error generating image:', error)
-      alert('Error generating image. Please try again.')
+      setError('Error generating image. Please try again.')
     } finally {
       setIsGenerating(false)
     }
@@ -133,7 +138,7 @@ export function AIImageGenerator({ onImageGenerated, slideContext }: AIImageGene
         {isGenerating ? (
           <>
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            Generating...
+            Generating with GPT-Image-1...
           </>
         ) : (
           <>
@@ -143,43 +148,62 @@ export function AIImageGenerator({ onImageGenerated, slideContext }: AIImageGene
         )}
       </Button>
 
-      {/* Generated Images */}
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Generated Image */}
       {generatedImages.length > 0 && (
         <div className="space-y-2">
-          <Label>Generated Images (Click to select)</Label>
-          <div className="grid grid-cols-1 gap-2">
-            {generatedImages.map((imageUrl, index) => (
-              <Card
-                key={index}
-                className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
-                onClick={() => selectImage(imageUrl)}
-              >
-                <CardContent className="p-2">
-                  <img
-                    src={imageUrl}
-                    alt={`Generated image ${index + 1}`}
-                    className="w-full h-32 object-cover rounded"
-                  />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Label>Generated Image</Label>
+          <Card
+            className="cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+            onClick={() => selectImage(generatedImages[0])}
+          >
+            <CardContent className="p-2">
+              <img
+                src={generatedImages[0]}
+                alt="Generated image"
+                className="w-full h-32 object-cover rounded"
+              />
+              <div className="mt-2 text-xs text-center text-gray-500">
+                Click to use this image
+              </div>
+            </CardContent>
+          </Card>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={generateImage}
+            disabled={isGenerating}
+            className="w-full"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Regenerate
+          </Button>
         </div>
       )}
 
       {/* Helper Text */}
       <div className="text-xs text-gray-500 space-y-1">
-        <p>💡 <strong>Tips for better results:</strong></p>
+        <p>💡 <strong>Tips for better results with GPT-Image-1:</strong></p>
         <ul className="space-y-1 ml-4">
-          <li>• Be specific about style and composition</li>
-          <li>• Mention colors, mood, and visual elements</li>
+          <li>• Be specific about style, composition, and colors</li>
+          <li>• Mention the mood and visual elements you want</li>
           <li>• Include context about your presentation topic</li>
+          <li>• Specify if you want realistic photos vs illustrations</li>
         </ul>
       </div>
 
-      {/* Demo Notice */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
-        <strong>Demo Mode:</strong> This generates placeholder images. In production, this would connect to OpenAI DALL-E or similar AI image generation service.
+      {/* AI Model Info */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
+        <strong>✨ Powered by OpenAI GPT-Image-1:</strong> Latest AI image generation model with improved quality, style diversity, and text rendering capabilities.
       </div>
     </div>
   )
